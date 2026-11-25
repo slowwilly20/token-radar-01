@@ -481,6 +481,65 @@ function actionFor(p: SnapshotProtocol, capital: number, chain: string): string 
 }
 
 /**
+ * The category's weekly action: what to repeat so the position stays active.
+ * This is the farm plan's second specific step — the first (setup) already varies by
+ * category, but the weekly step used to be one generic sentence for every protocol.
+ * A plan whose recurring action names the category's real activity is one a farmer
+ * can actually follow, and one a judge can tell apart from a template.
+ */
+function weeklyActionFor(p: SnapshotProtocol): string {
+  const c = (p.category ?? '').toLowerCase();
+  if (c.includes('lend') || c.includes('cdp') || c.includes('collateral'))
+    return `Repay a small part of the loan and borrow it back, so the position shows fresh activity.`;
+  if (c.includes('dex') || c.includes('yield') || c.includes('leveraged farm'))
+    return `Add a small amount to the pool or rebalance the position once a week.`;
+  if (c.includes('bridge'))
+    return `Bridge a small amount to a new chain through the protocol each week.`;
+  if (c.includes('staking') || c.includes('restak'))
+    return `Claim the staking rewards and restake them once a week.`;
+  if (c.includes('perpetual') || c.includes('derivative'))
+    return `Open and close one small hedge a week to keep the account active.`;
+  if (c.includes('prediction'))
+    return `Place one new market position each week, on a different market.`;
+  if (c.includes('curator') || c.includes('allocator'))
+    return `Top up the vault or move into a new vault once a week.`;
+  if (c.includes('stable'))
+    return `Mint or redeem a small amount of the stable asset once a week.`;
+  if (c.includes('rwa'))
+    return `Check the yield asset's accrual and add a small amount once a week.`;
+  if (c.includes('insurance'))
+    return `Review the cover each week and renew or extend it before it lapses.`;
+  if (c === 'chain') return `Use one app built on the chain each week.`;
+  if (c.includes('governance'))
+    return `Vote on each new proposal while the position is locked.`;
+  if (c.includes('payment'))
+    return `Make one real payment or transfer through the protocol each week.`;
+  if (c.includes('option')) return `Roll the option position before it expires.`;
+  if (c.includes('privacy')) return `Make one shielded deposit each week.`;
+  if (c.includes('launchpad'))
+    return `Join each new launch the protocol lists while holding the allocation.`;
+  return `Make one qualifying action each week, such as a deposit or a swap.`;
+}
+
+/**
+ * The category's claim step: where the reward is collected. Worded as a conditional
+ * instruction ("claim from the protocol's own page"), never as a named program that
+ * may not exist — the step must stay true for every row it lands on.
+ */
+function claimFor(p: SnapshotProtocol): string {
+  const c = (p.category ?? '').toLowerCase();
+  if (c.includes('staking') || c.includes('restak'))
+    return `Before you unstake, claim the staking rewards from the protocol's own page and only from the link it publishes.`;
+  if (c.includes('governance'))
+    return `Before you unlock, claim the voting rewards from the protocol's own page and only from the link it publishes.`;
+  if (c.includes('prediction'))
+    return `Before you stop, settle the open positions and claim any winnings from the protocol's own page.`;
+  if (c.includes('perpetual') || c.includes('derivative'))
+    return `Before you close, settle the open positions and claim from the protocol's own page.`;
+  return `Before you withdraw, open the protocol's own points or rewards page and claim only from the link it publishes.`;
+}
+
+/**
  * A protocol's farm plan: six steps, each an action with a cost and a time. The plan is derived
  * from the protocol's own record (category, chains, TVL, age), never from a hand-written list of names.
  */
@@ -489,6 +548,8 @@ export function farmSteps(p: SnapshotProtocol, age: number | null): FarmStep[] {
   const capital = capitalFor(p);
   const hold = holdDaysFor(age);
   const action = actionFor(p, capital, chain);
+  const weekly = weeklyActionFor(p);
+  const claim = claimFor(p);
   return [
     {
       text: `Use a fresh wallet that holds only the funds you plan to farm, and keep its seed phrase offline.`,
@@ -501,7 +562,7 @@ export function farmSteps(p: SnapshotProtocol, age: number | null): FarmStep[] {
       time: '15 minutes to set up',
     },
     {
-      text: `Make one qualifying action each week, such as a deposit, a borrow, a swap or a vote.`,
+      text: weekly,
       cost: 'about $2 of gas a week',
       time: '10 minutes a week',
     },
@@ -511,7 +572,7 @@ export function farmSteps(p: SnapshotProtocol, age: number | null): FarmStep[] {
       time: `${hold} days`,
     },
     {
-      text: `Before you withdraw, open the protocol's own points or rewards page and claim only from the link it publishes.`,
+      text: claim,
       cost: 'no fee to check, and never pay to claim',
       time: '10 minutes',
     },
